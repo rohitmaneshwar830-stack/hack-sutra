@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+  --color-primary: #0f1b31;
+  --color-accent: #f5a623;
+  --color-safe-green: #2d6a4f;
+  --color-alert-red: #dc2626;
+}
+
+@layer utilities {
+  /* Blinking dot utility for maps and indicators — slower than default animate-ping (1s) */
+  .animate-ping-slow {
+    animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  /* Fade-in entry animation for modals / simulation panels */
+  .animate-fadeIn {
+    animation: fadeIn 0.35s ease-out both;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
