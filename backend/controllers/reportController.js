@@ -108,7 +108,11 @@ const updateReportStatus = async (req, res) => {
     res.json({ message: 'Report status updated.', report });
   } catch (error) {
     console.error('Update report error:', error);
-    res.status(500).json({ error: 'Failed to update report.' });
+    const report = fallbackStore.updateReportStatus(id, status);
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found.' });
+    }
+    res.json({ message: 'Report status updated.', report });
   }
 };
 

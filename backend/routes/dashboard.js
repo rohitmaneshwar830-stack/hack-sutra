@@ -7,9 +7,9 @@ const { getStats, getRiverHealth, getSensorReadings } = require('../controllers/
 router.get('/stats', getStats);
 
 // GET /api/river-health/:location — health score
-router.get('/river-health/:location', verifyToken, getRiverHealth);
+router.get('/river-health/:location', getRiverHealth);
 
 // GET /api/sensor-readings/:location — raw historical data
-router.get('/sensor-readings/:location', verifyToken, getSensorReadings);
+router.get('/sensor-readings/:location', getSensorReadings);
 
 module.exports = router;

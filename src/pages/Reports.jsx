@@ -54,7 +54,7 @@ export default function Reports() {
           <Loader2 className="animate-spin text-primary h-12 w-12" />
         </div>
       ) : reports.length === 0 ? (
-        <div className="bg-white border border-gray-250 p-16 text-center rounded-sm">
+        <div className="bg-white border border-gray-200 p-16 text-center rounded-sm">
           <FileText className="h-10 w-10 text-gray-300 mx-auto mb-4" />
           <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">No citizen reports found</h3>
         </div>
@@ -72,7 +72,7 @@ export default function Reports() {
                   <th className="px-4 py-3.5 text-center">Enforcement Decisions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-250 font-medium">
+              <tbody className="divide-y divide-gray-200 font-medium">
                 {reports.map((report) => (
                   <tr key={report._id} className="hover:bg-gray-50/50">
                     <td className="px-4 py-4 border-r text-gray-900 font-bold">{report.location}</td>

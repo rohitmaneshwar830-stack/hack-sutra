@@ -136,7 +136,7 @@ export default function DigitalTwin() {
         <div className="lg:col-span-8 space-y-6">
           {!showResults && !isSimulating ? (
             <div className="bg-gray-50 border border-gray-200 border-dashed p-16 text-center rounded-sm">
-              <Cpu className="h-10 w-10 text-gray-355 mx-auto mb-4" />
+              <Cpu className="h-10 w-10 text-gray-500 mx-auto mb-4" />
               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Awaiting Simulation Configuration</h3>
               <p className="text-xs text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed">
                 Adjust the toggle controls on the left to halt industrial effluents or manage STPs, then click "Run Policy Twin" to view simulated data.
@@ -144,7 +144,7 @@ export default function DigitalTwin() {
             </div>
           ) : isSimulating ? (
             <div className="bg-white border border-gray-200 p-16 text-center rounded-sm shadow-sm flex flex-col justify-center items-center min-h-[300px]">
-              <div className="h-10 w-10 border-3 border-primary border-t-accent rounded-full animate-spin mb-4"></div>
+              <div className="h-10 w-10 border-[3px] border-primary border-t-accent rounded-full animate-spin mb-4"></div>
               <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Resolving LSTM Neural Net Parameters...</p>
             </div>
           ) : (

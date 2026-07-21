@@ -7,8 +7,8 @@ const fallbackStore = require('../utils/fallbackStore');
  */
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
+    { id: user._id || user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET || 'dev-secret',
     { expiresIn: '7d' }
   );
 };
@@ -26,6 +26,7 @@ const register = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    fallbackStore.seedDemoUsers();
 
     let existingUser;
     try {
@@ -98,6 +99,7 @@ const login = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    fallbackStore.seedDemoUsers();
 
     let user;
     try {

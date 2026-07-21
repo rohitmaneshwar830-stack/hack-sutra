@@ -171,14 +171,14 @@ export default function RiverStatus() {
             Monitoring Stations State
           </h2>
           
-          <div className="bg-white border border-gray-250 p-6 rounded-sm shadow-sm space-y-5">
+          <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm space-y-5">
             <div className="flex justify-between items-center border-b pb-3.5">
               <div>
                 <h3 className="font-bold text-gray-900 text-sm font-outfit uppercase">Kanpur Ghats</h3>
                 <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Heavy industrial cluster</p>
               </div>
               <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold border tracking-wider ${
-                stationHealths['Kanpur-Jajmau']?.status === 'CRITICAL' ? 'bg-red-100 text-red-800 border-red-200' : (stationHealths['Kanpur-Jajmau']?.status ? 'bg-orange-100 text-orange-850 border-orange-200' : 'bg-gray-100 text-gray-800 border-gray-200')
+                stationHealths['Kanpur-Jajmau']?.status === 'CRITICAL' ? 'bg-red-100 text-red-800 border-red-200' : (stationHealths['Kanpur-Jajmau']?.status ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-gray-100 text-gray-800 border-gray-200')
               }`}>
                 {stationHealths['Kanpur-Jajmau']?.status || '--'} ({stationHealths['Kanpur-Jajmau']?.score || '--'})
               </span>
