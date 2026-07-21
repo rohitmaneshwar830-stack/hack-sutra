@@ -1,18 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sliders, Save, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
 
 export default function Settings() {
+  const { user } = useAuth();
+  
   const [pollingInterval, setPollingInterval] = useState('5 minutes');
   const [confidenceThreshold, setConfidenceThreshold] = useState('75%');
   const [notificationEmail, setNotificationEmail] = useState('alerts@gangaguardian.gov.in');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    // Load existing settings if available in user context
+    if (user?.settings) {
+      setPollingInterval(user.settings.pollingInterval || '5 minutes');
+      setConfidenceThreshold(user.settings.confidenceThreshold || '75%');
+      setNotificationEmail(user.settings.notificationEmail || user.email || 'alerts@gangaguardian.gov.in');
+    } else if (user?.email) {
+      setNotificationEmail(user.email);
+    }
+  }, [user]);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-    }, 3000);
+    try {
+      if (user?.id) {
+        const newSettings = {
+          pollingInterval,
+          confidenceThreshold,
+          notificationEmail
+        };
+        
+        await api.put(`/users/${user.id}`, { settings: newSettings });
+        
+        // Update local context
+        const saved = localStorage.getItem('ganga_guardian_user');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          parsed.settings = newSettings;
+          localStorage.setItem('ganga_guardian_user', JSON.stringify(parsed));
+        }
+      }
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+    } catch (err) {
+      console.error('Failed to save settings', err);
+    }
   };
 
   return (

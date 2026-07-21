@@ -53,7 +53,19 @@ export default function Header({ currentPath, onNavigate }) {
       );
     }
 
-    if (user.role === 'admin') {
+    if (user.role === 'industry') {
+      return (
+        <>
+          <a href="/industry" onClick={(e) => handleLinkClick('/industry', e)} className={isActive('/industry')}>Industry Portal</a>
+          <a href="/profile" onClick={(e) => handleLinkClick('/profile', e)} className={isActive('/profile')}>Profile</a>
+          <button onClick={handleLogoutClick} className="text-sm font-medium text-white/80 hover:text-red-400 flex items-center gap-1 transition-colors">
+            <LogOut className="h-4 w-4" /> Logout
+          </button>
+        </>
+      );
+    }
+
+    if (user.role === 'admin' || user.role === 'government_officer') {
       // Admin/Government Links
       return (
         <>
@@ -62,7 +74,12 @@ export default function Header({ currentPath, onNavigate }) {
           <a href="/biodiversity" onClick={(e) => handleLinkClick('/biodiversity', e)} className={isActive('/biodiversity')}>Biodiversity</a>
           <a href="/digital-twin" onClick={(e) => handleLinkClick('/digital-twin', e)} className={isActive('/digital-twin')}>Digital Twin</a>
           <a href="/reports" onClick={(e) => handleLinkClick('/reports', e)} className={isActive('/reports')}>Reports</a>
-          <a href="/settings" onClick={(e) => handleLinkClick('/settings', e)} className={isActive('/settings')}>Settings</a>
+          {user.role === 'admin' && (
+            <>
+              <a href="/settings" onClick={(e) => handleLinkClick('/settings', e)} className={isActive('/settings')}>Settings</a>
+              <a href="/admin" onClick={(e) => handleLinkClick('/admin', e)} className={isActive('/admin')}>Admin</a>
+            </>
+          )}
           <button onClick={handleLogoutClick} className="text-sm font-medium text-white/80 hover:text-red-400 flex items-center gap-1 transition-colors">
             <LogOut className="h-4 w-4" /> Logout
           </button>
@@ -77,7 +94,7 @@ export default function Header({ currentPath, onNavigate }) {
       <div className="flex h-1.5 w-full">
         <div className="flex-1 bg-[#F4C430]"></div>
         <div className="flex-1 bg-white"></div>
-        <div className="flex-1 bg-[#2d6a4f]"></div>
+        <div className="flex-1 bg-safe-green"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
@@ -160,6 +177,14 @@ export default function Header({ currentPath, onNavigate }) {
                   <LogOut className="h-4 w-4" /> Logout
                 </button>
               </>
+            ) : user.role === 'industry' ? (
+              <>
+                <a href="/industry" onClick={(e) => handleLinkClick('/industry', e)} className="text-white hover:text-accent font-medium py-1">Industry Portal</a>
+                <a href="/profile" onClick={(e) => handleLinkClick('/profile', e)} className="text-white hover:text-accent font-medium py-1">Profile</a>
+                <button onClick={handleLogoutClick} className="text-left text-red-400 hover:text-red-300 font-medium py-2 border-t border-white/5 mt-2 flex items-center gap-1.5">
+                  <LogOut className="h-4 w-4" /> Logout
+                </button>
+              </>
             ) : (
               <>
                 <a href="/dashboard" onClick={(e) => handleLinkClick('/dashboard', e)} className="text-white hover:text-accent font-medium py-1">Dashboard</a>
@@ -167,7 +192,12 @@ export default function Header({ currentPath, onNavigate }) {
                 <a href="/biodiversity" onClick={(e) => handleLinkClick('/biodiversity', e)} className="text-white hover:text-accent font-medium py-1">Biodiversity</a>
                 <a href="/digital-twin" onClick={(e) => handleLinkClick('/digital-twin', e)} className="text-white hover:text-accent font-medium py-1">Digital Twin</a>
                 <a href="/reports" onClick={(e) => handleLinkClick('/reports', e)} className="text-white hover:text-accent font-medium py-1">Reports</a>
-                <a href="/settings" onClick={(e) => handleLinkClick('/settings', e)} className="text-white hover:text-accent font-medium py-1">Settings</a>
+                {user.role === 'admin' && (
+                  <>
+                    <a href="/settings" onClick={(e) => handleLinkClick('/settings', e)} className="text-white hover:text-accent font-medium py-1">Settings</a>
+                    <a href="/admin" onClick={(e) => handleLinkClick('/admin', e)} className="text-white hover:text-accent font-medium py-1">Admin Panel</a>
+                  </>
+                )}
                 <button onClick={handleLogoutClick} className="text-left text-red-400 hover:text-red-300 font-medium py-2 border-t border-white/5 mt-2 flex items-center gap-1.5">
                   <LogOut className="h-4 w-4" /> Logout
                 </button>

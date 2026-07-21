@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, Phone, Mail, CheckCircle, Save } from 'lucide-react';
+import { api } from '../utils/api';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -11,23 +12,33 @@ export default function Profile() {
   const [lang, setLang] = useState('English');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!name) return;
 
-    // Update in context/localStorage
-    const saved = localStorage.getItem('ganga_guardian_user');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      parsed.name = name;
-      parsed.phone = phone;
-      localStorage.setItem('ganga_guardian_user', JSON.stringify(parsed));
-    }
+    try {
+      if (user?.id) {
+        // Call backend API
+        await api.put(`/users/${user.id}`, { name, phone, department: district });
+      }
 
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-    }, 3000);
+      // Update in context/localStorage
+      const saved = localStorage.getItem('ganga_guardian_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        parsed.name = name;
+        parsed.phone = phone;
+        parsed.department = district;
+        localStorage.setItem('ganga_guardian_user', JSON.stringify(parsed));
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+    }
   };
 
   return (

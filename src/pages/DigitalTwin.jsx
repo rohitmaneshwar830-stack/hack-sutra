@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Sliders, Cpu, BarChart3, AlertCircle, Play } from 'lucide-react';
+import { api } from '../utils/api';
 
 export default function DigitalTwin() {
   const [haltTanneries, setHaltTanneries] = useState(false);
@@ -7,54 +9,49 @@ export default function DigitalTwin() {
   const [aerators, setAerators] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationData, setSimulationData] = useState(null);
 
-  const handleSimulate = () => {
-    setIsSimulating(true);
-    setTimeout(() => {
-      setIsSimulating(false);
-      setShowResults(true);
-    }, 1200);
-  };
-
-  const getResults = () => {
-    let bodBefore = 61;
-    let bodAfter = 61;
-    let fishKillBefore = 70;
-    let fishKillAfter = 70;
-    let dolphinBefore = 'HIGH RISK';
-    let dolphinAfter = 'HIGH RISK';
-
-    if (haltTanneries) {
-      bodAfter -= 23;
-      fishKillAfter -= 45;
-      dolphinAfter = 'MODERATE';
-    }
-
-    if (stpBypass) {
-      bodAfter -= 10;
-      fishKillAfter -= 15;
-    }
-
-    if (aerators) {
-      fishKillAfter -= 10;
-    }
-
-    // Boundary limits
-    bodAfter = Math.max(12, bodAfter);
-    fishKillAfter = Math.max(5, fishKillAfter);
-    if (bodAfter < 30) dolphinAfter = 'LOW RISK';
+  const buildFallbackSimulation = (inputs) => {
+    const bodBefore = 28 + (inputs.stpBypass ? 4 : 0);
+    const bodAfter = Math.max(8, bodBefore - (inputs.haltTanneries ? 14 : 4) - (inputs.aerators ? 3 : 0));
+    const fishBefore = 72 + (inputs.stpBypass ? 6 : 0);
+    const fishAfter = Math.max(16, fishBefore - (inputs.haltTanneries ? 24 : 7) - (inputs.aerators ? 4 : 0));
 
     return {
-      bodBefore,
-      bodAfter,
-      fishKillBefore,
-      fishKillAfter,
-      dolphinBefore,
-      dolphinAfter
+      beforeValues: {
+        bodLevel: bodBefore,
+        fishKillRisk: fishBefore,
+        dolphinHabitatRisk: inputs.haltTanneries ? 'High Risk' : 'Elevated Risk'
+      },
+      afterValues: {
+        bodLevel: bodAfter,
+        fishKillRisk: fishAfter,
+        dolphinHabitatRisk: inputs.haltTanneries ? 'Moderate' : 'Elevated'
+      },
+      bodReduction: Math.max(10, Math.round(((bodBefore - bodAfter) / bodBefore) * 100)),
+      fishKillReduction: Math.max(12, Math.round(((fishBefore - fishAfter) / fishBefore) * 100))
     };
   };
 
-  const results = getResults();
+  const handleSimulate = async () => {
+    setIsSimulating(true);
+    try {
+      const response = await api.post('/digital-twin/simulate', {
+        haltTanneries,
+        stpBypass,
+        aerators
+      });
+      setSimulationData(response.simulation || buildFallbackSimulation({ haltTanneries, stpBypass, aerators }));
+      setShowResults(true);
+    } catch (e) {
+      const fallbackSimulation = buildFallbackSimulation({ haltTanneries, stpBypass, aerators });
+      setSimulationData(fallbackSimulation);
+      setShowResults(true);
+      toast.error('Simulation service unavailable; showing a local fallback scenario.');
+    } finally {
+      setIsSimulating(false);
+    }
+  };
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 py-10 min-h-screen text-left">
@@ -139,7 +136,7 @@ export default function DigitalTwin() {
         <div className="lg:col-span-8 space-y-6">
           {!showResults && !isSimulating ? (
             <div className="bg-gray-50 border border-gray-200 border-dashed p-16 text-center rounded-sm">
-              <Cpu className="h-10 w-10 text-gray-350 mx-auto mb-4" />
+              <Cpu className="h-10 w-10 text-gray-355 mx-auto mb-4" />
               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Awaiting Simulation Configuration</h3>
               <p className="text-xs text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed">
                 Adjust the toggle controls on the left to halt industrial effluents or manage STPs, then click "Run Policy Twin" to view simulated data.
@@ -161,11 +158,11 @@ export default function DigitalTwin() {
                 <div className="bg-gray-50 p-4 border border-gray-150 rounded-sm">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">BOD Level</span>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-gray-400 line-through font-bold text-xs">{results.bodBefore} mg/L</span>
-                    <span className="text-safe-green font-extrabold text-lg">{results.bodAfter} mg/L</span>
+                    <span className="text-gray-400 line-through font-bold text-xs">{simulationData?.beforeValues?.bodLevel} mg/L</span>
+                    <span className="text-safe-green font-extrabold text-lg">{simulationData?.afterValues?.bodLevel} mg/L</span>
                   </div>
                   <div className="text-[9px] font-bold text-safe-green uppercase mt-2">
-                    {Math.round((1 - results.bodAfter / results.bodBefore) * 100)}% Decrease
+                    {simulationData?.bodReduction}% Decrease
                   </div>
                 </div>
 
@@ -173,11 +170,11 @@ export default function DigitalTwin() {
                 <div className="bg-gray-50 p-4 border border-gray-150 rounded-sm">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Fish Kill Risk</span>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-gray-400 line-through font-bold text-xs">{results.fishKillBefore}%</span>
-                    <span className="text-safe-green font-extrabold text-lg">{results.fishKillAfter}%</span>
+                    <span className="text-gray-400 line-through font-bold text-xs">{simulationData?.beforeValues?.fishKillRisk}%</span>
+                    <span className="text-safe-green font-extrabold text-lg">{simulationData?.afterValues?.fishKillRisk}%</span>
                   </div>
                   <div className="text-[9px] font-bold text-safe-green uppercase mt-2">
-                    {results.fishKillBefore - results.fishKillAfter}% Risk Reduction
+                    {simulationData?.fishKillReduction}% Risk Reduction
                   </div>
                 </div>
 
@@ -185,8 +182,8 @@ export default function DigitalTwin() {
                 <div className="bg-gray-50 p-4 border border-gray-150 rounded-sm">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Dolphin Habitat Risk</span>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-gray-400 line-through font-bold text-xs">{results.dolphinBefore}</span>
-                    <span className="text-safe-green font-extrabold text-lg uppercase">{results.dolphinAfter}</span>
+                    <span className="text-gray-400 line-through font-bold text-xs">{simulationData?.beforeValues?.dolphinHabitatRisk}</span>
+                    <span className="text-safe-green font-extrabold text-lg uppercase">{simulationData?.afterValues?.dolphinHabitatRisk}</span>
                   </div>
                   <div className="text-[9px] font-bold text-safe-green uppercase mt-2">
                     Status Improved

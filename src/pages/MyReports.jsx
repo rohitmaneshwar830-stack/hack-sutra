@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Eye, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { FileText, Eye, Clock, Loader2 } from 'lucide-react';
+import { api } from '../utils/api';
+import { getStatusStyle } from '../utils/styles';
 
 export default function MyReports({ onNavigate }) {
   const { user } = useAuth();
   const [myReports, setMyReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMyReports = async () => {
+    try {
+      setLoading(true);
+      const data = await api.get('/reports');
+      setMyReports(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const savedReports = localStorage.getItem('ganga_guardian_citizen_reports');
-    if (savedReports && user) {
-      try {
-        const allReports = JSON.parse(savedReports);
-        // Filter reports submitted by current citizen user
-        const filtered = allReports.filter(
-          (r) => r.reporter === user.name || r.reporter === 'Citizen User'
-        );
-        setMyReports(filtered);
-      } catch (e) {
-        console.error('Failed to parse reports', e);
-      }
+    if (user) {
+      fetchMyReports();
     }
   }, [user]);
+
+
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 text-left min-h-[calc(100vh-200px)]">
@@ -41,7 +49,11 @@ export default function MyReports({ onNavigate }) {
         </button>
       </div>
 
-      {myReports.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-primary h-12 w-12" />
+        </div>
+      ) : myReports.length === 0 ? (
         /* Empty State */
         <div className="bg-white border border-gray-250 p-12 text-center rounded-sm">
           <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -61,7 +73,7 @@ export default function MyReports({ onNavigate }) {
         <div className="space-y-6">
           {myReports.map((report) => (
             <div
-              key={report.id}
+              key={report._id}
               className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
             >
               <div className="space-y-2">
@@ -69,7 +81,9 @@ export default function MyReports({ onNavigate }) {
                   <span className="bg-primary/5 border border-primary/10 text-primary font-bold text-[10px] px-2.5 py-0.5 uppercase tracking-wider rounded-sm">
                     {report.type}
                   </span>
-                  <span className="text-xs text-gray-400 font-semibold">{report.time}</span>
+                  <span className="text-xs text-gray-400 font-semibold">
+                    {new Date(report.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
                 <h3 className="font-bold text-gray-900 text-base font-outfit">{report.location}</h3>
                 <div className="flex items-center gap-4 text-xs text-gray-500 font-medium">
@@ -86,12 +100,15 @@ export default function MyReports({ onNavigate }) {
                     Verification State
                   </p>
                   <span
-                    className={`px-3 py-1 rounded-[3px] text-xs font-bold border ${report.statusStyle || 'bg-gray-100 border-gray-200'}`}
+                    className={`px-3 py-1 rounded-[3px] text-xs font-bold border uppercase ${getStatusStyle(report.status)}`}
                   >
                     {report.status}
                   </span>
                 </div>
-                <button className="p-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded transition-colors cursor-pointer">
+                <button
+                  onClick={() => toast.success(`Details — Location: ${report.location}. Type: ${report.type}. Status: ${report.status}. Description: ${report.description}`)}
+                  className="p-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+                >
                   <Eye className="h-4.5 w-4.5" />
                 </button>
               </div>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -24,37 +25,26 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setAuthError(null);
     setLoading(true);
-    
-    // Simulate API request delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const response = await api.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    if (cleanEmail === 'admin@ganga.ai' && password === '123456') {
-      const adminUser = {
-        email: 'admin@ganga.ai',
-        role: 'admin',
-        name: 'Rohit Maneshwer', // Matching the core development team frontend dev / admin name
-        department: 'Ministry of Jal Shakti',
+      const { token, user: userData } = response;
+      const loggedUser = {
+        ...userData,
+        token,
       };
-      setUser(adminUser);
-      localStorage.setItem('ganga_guardian_user', JSON.stringify(adminUser));
+
+      setUser(loggedUser);
+      localStorage.setItem('ganga_guardian_user', JSON.stringify(loggedUser));
       setLoading(false);
-      return adminUser;
-    } else if (cleanEmail === 'citizen@ganga.ai' && password === '123456') {
-      const citizenUser = {
-        email: 'citizen@ganga.ai',
-        role: 'citizen',
-        name: 'Citizen User',
-        phone: '+91 98765-43210',
-      };
-      setUser(citizenUser);
-      localStorage.setItem('ganga_guardian_user', JSON.stringify(citizenUser));
+      return loggedUser;
+    } catch (err) {
       setLoading(false);
-      return citizenUser;
-    } else {
-      setLoading(false);
-      const errorMsg = 'Invalid email or password. Please use the demo credentials.';
+      const errorMsg = err.message || 'Invalid email or password.';
       setAuthError(errorMsg);
       throw new Error(errorMsg);
     }
@@ -64,28 +54,29 @@ export function AuthProvider({ children }) {
     setAuthError(null);
     setLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const response = await api.post('/auth/register', {
+        email: email.trim().toLowerCase(),
+        password,
+        name: name || 'Registered Citizen',
+      });
 
-    const cleanEmail = email.trim().toLowerCase();
-    
-    if (cleanEmail.includes('admin') || cleanEmail.includes('gov')) {
+      const { token, user: userData } = response;
+      const newUser = {
+        ...userData,
+        token,
+      };
+
+      setUser(newUser);
+      localStorage.setItem('ganga_guardian_user', JSON.stringify(newUser));
       setLoading(false);
-      const errorMsg = 'Government accounts cannot be created via public sign-up.';
+      return newUser;
+    } catch (err) {
+      setLoading(false);
+      const errorMsg = err.message || 'Registration failed.';
       setAuthError(errorMsg);
       throw new Error(errorMsg);
     }
-
-    const newUser = {
-      email: cleanEmail,
-      role: 'citizen',
-      name: name || 'Registered Citizen',
-      phone: '',
-    };
-
-    setUser(newUser);
-    localStorage.setItem('ganga_guardian_user', JSON.stringify(newUser));
-    setLoading(false);
-    return newUser;
   };
 
   const logout = () => {

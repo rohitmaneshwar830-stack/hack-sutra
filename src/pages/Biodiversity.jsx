@@ -1,36 +1,29 @@
-import React from 'react';
-import { Fish, ShieldAlert, AlertTriangle, Eye, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { Fish, Loader2 } from 'lucide-react';
+import { api } from '../utils/api';
+import { getRiskStyle } from '../utils/styles';
 
 export default function Biodiversity() {
-  const species = [
-    {
-      name: 'Gangetic Dolphin (Platanista gangetica)',
-      status: 'Endangered',
-      risk: 'HIGH RISK',
-      riskStyle: 'bg-alert-red text-white',
-      habitat: 'Kanpur to Prayagraj deep pool stretches',
-      threats: 'Bioaccumulation of chromium, industrial noise, STP overflows',
-      population: 'Estimated 2,500 - 3,000 remaining in basin'
-    },
-    {
-      name: 'Hilsa Fish (Tenualosa ilisha)',
-      status: 'Varanasi Passage Restricted',
-      risk: 'CRITICAL',
-      riskStyle: 'bg-red-950 text-white',
-      habitat: 'Estuary spawning grounds up to Farakka Barrage',
-      threats: 'High BOD blockage, heavy municipal organic loads',
-      population: 'Declining migrations recorded annually'
-    },
-    {
-      name: 'Gharial (Gavialis gangeticus)',
-      status: 'Critically Endangered',
-      risk: 'ALERT',
-      riskStyle: 'bg-accent text-white',
-      habitat: 'Chambal tributary confluence stretches',
-      threats: 'River bed mining, industrial runoff spikes',
-      population: 'High sandbar telemetry monitoring active'
+  const [species, setSpecies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSpecies = async () => {
+    try {
+      setLoading(true);
+      const data = await api.get('/species-alerts');
+      setSpecies(data);
+    } catch (e) {
+      setSpecies([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchSpecies();
+  }, []);
+
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 py-10 min-h-screen text-left">
@@ -45,45 +38,56 @@ export default function Biodiversity() {
       </div>
 
       {/* Grid */}
-      <div className="space-y-6">
-        {species.map((s, idx) => (
-          <div key={idx} className="bg-white border border-gray-200 shadow-sm p-6 rounded-sm flex flex-col md:flex-row justify-between items-start gap-6">
-            <div className="space-y-3 max-w-xl">
-              <div className="flex items-center gap-3">
-                <span className={`px-2.5 py-0.5 rounded-[3px] text-[10px] font-black tracking-wider uppercase ${s.riskStyle}`}>
-                  {s.risk}
-                </span>
-                <span className="text-xs text-gray-400 font-bold uppercase">{s.status}</span>
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-primary h-12 w-12" />
+        </div>
+      ) : species.length === 0 ? (
+        <div className="bg-white border border-gray-250 p-12 text-center rounded-sm">
+          <Fish className="h-10 w-10 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-sm font-bold text-gray-700 uppercase">No species alerts</h3>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {species.map((s, idx) => (
+            <div key={s._id || idx} className="bg-white border border-gray-200 shadow-sm p-6 rounded-sm flex flex-col md:flex-row justify-between items-start gap-6">
+              <div className="space-y-3 max-w-xl">
+                <div className="flex items-center gap-3">
+                  <span className={`px-2.5 py-0.5 rounded-[3px] text-[10px] font-black tracking-wider G G-wider uppercase ${getRiskStyle(s.riskLevel)}`}>
+                    {s.riskLevel} RISK
+                  </span>
+                  <span className="text-xs text-gray-400 font-bold uppercase">{s.scientificName || s.conservationStatus}</span>
+                </div>
+                
+                <h2 className="text-lg font-bold text-gray-900 font-outfit uppercase flex items-center gap-2">
+                  <Fish className="h-5 w-5 text-primary" /> {s.speciesName}
+                </h2>
+                
+                <div className="text-xs space-y-1.5 text-gray-600 font-medium">
+                  <p><strong className="text-gray-800">Critical Habitat:</strong> {s.habitat}</p>
+                  <p><strong className="text-gray-800">Primary Stressors:</strong> {s.threats}</p>
+                  <p><strong className="text-gray-800">Telemetry Status:</strong> {s.population}</p>
+                </div>
               </div>
-              
-              <h2 className="text-lg font-bold text-gray-900 font-outfit uppercase flex items-center gap-2">
-                <Fish className="h-5 w-5 text-primary" /> {s.name}
-              </h2>
-              
-              <div className="text-xs space-y-1.5 text-gray-600 font-medium">
-                <p><strong className="text-gray-800">Critical Habitat:</strong> {s.habitat}</p>
-                <p><strong className="text-gray-800">Primary Stressors:</strong> {s.threats}</p>
-                <p><strong className="text-gray-800">Telemetry Status:</strong> {s.population}</p>
-              </div>
-            </div>
 
-            <div className="w-full md:w-auto flex flex-row md:flex-col gap-3 justify-end items-center border-t md:border-t-0 pt-4 md:pt-0">
-              <button
-                onClick={() => alert(`Opening telemetry maps for ${s.name}...`)}
-                className="w-full md:w-auto bg-primary hover:bg-primary/95 text-white font-bold px-4 py-2 text-xs rounded-sm shadow-sm transition-colors uppercase tracking-wider cursor-pointer"
-              >
-                Track Species
-              </button>
-              <button
-                onClick={() => alert(`Opening environmental impact reports for ${s.name}...`)}
-                className="w-full md:w-auto border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold px-4 py-2 text-xs rounded-sm transition-colors uppercase tracking-wider cursor-pointer bg-white"
-              >
-                Habitat metrics
-              </button>
+              <div className="w-full md:w-auto flex flex-row md:flex-col gap-3 justify-end items-center border-t md:border-t-0 pt-4 md:pt-0">
+                <button
+                  onClick={() => toast.success(`Opening telemetry maps for ${s.speciesName}...`)}
+                  className="w-full md:w-auto bg-primary hover:bg-primary/95 text-white font-bold px-4 py-2 text-xs rounded-sm shadow-sm transition-colors uppercase tracking-wider cursor-pointer"
+                >
+                  Track Species
+                </button>
+                <button
+                  onClick={() => toast.success(`Opening environmental impact reports for ${s.speciesName}...`)}
+                  className="w-full md:w-auto border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold px-4 py-2 text-xs rounded-sm transition-colors uppercase tracking-wider cursor-pointer bg-white"
+                >
+                  Habitat metrics
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

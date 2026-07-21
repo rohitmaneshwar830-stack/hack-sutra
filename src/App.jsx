@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import Footer from './components/Footer';
+import ToastProvider from './components/Toast';
 
 // Public Pages
 import Home from './pages/Home';
@@ -24,6 +25,8 @@ import Biodiversity from './pages/Biodiversity';
 import DigitalTwin from './pages/DigitalTwin';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import AdminPanel from './pages/AdminPanel';
+import IndustryPortal from './pages/IndustryPortal';
 
 import './App.css';
 
@@ -65,7 +68,9 @@ function AppContent() {
       '/biodiversity': 'Ganga Guardian AI — Species Risk Assessments',
       '/digital-twin': 'Ganga Guardian AI — Policy Twin Simulation',
       '/reports': 'Ganga Guardian AI — Incidents Registry',
-      '/settings': 'Ganga Guardian AI — System Settings'
+      '/settings': 'Ganga Guardian AI — System Settings',
+      '/admin': 'Ganga Guardian AI — Administration',
+      '/industry': 'Ganga Guardian AI — Industry Portal'
     };
     
     document.title = routeTitles[currentPath] || 'Ganga Guardian AI';
@@ -111,31 +116,31 @@ function AppContent() {
       // --- Protected Government Admin Paths ---
       case '/dashboard':
         return (
-          <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
+          <ProtectedRoute allowedRoles={['admin', 'government_officer']} onRedirect={navigate}>
             <Dashboard onNavigate={navigate} />
           </ProtectedRoute>
         );
       case '/alerts':
         return (
-          <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
+          <ProtectedRoute allowedRoles={['admin', 'government_officer']} onRedirect={navigate}>
             <AIAlerts onNavigate={navigate} />
           </ProtectedRoute>
         );
       case '/biodiversity':
         return (
-          <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
+          <ProtectedRoute allowedRoles={['admin', 'government_officer']} onRedirect={navigate}>
             <Biodiversity />
           </ProtectedRoute>
         );
       case '/digital-twin':
         return (
-          <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
+          <ProtectedRoute allowedRoles={['admin', 'government_officer']} onRedirect={navigate}>
             <DigitalTwin />
           </ProtectedRoute>
         );
       case '/reports':
         return (
-          <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
+          <ProtectedRoute allowedRoles={['admin', 'government_officer']} onRedirect={navigate}>
             <Reports />
           </ProtectedRoute>
         );
@@ -143,6 +148,18 @@ function AppContent() {
         return (
           <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
             <Settings />
+          </ProtectedRoute>
+        );
+      case '/admin':
+        return (
+          <ProtectedRoute allowedRoles={['admin']} onRedirect={navigate}>
+            <AdminPanel />
+          </ProtectedRoute>
+        );
+      case '/industry':
+        return (
+          <ProtectedRoute allowedRoles={['industry']} onRedirect={navigate}>
+            <IndustryPortal />
           </ProtectedRoute>
         );
 
@@ -162,12 +179,13 @@ function AppContent() {
       {user && <SubHeader />}
 
       {/* Main Page Area */}
-      <main className={`flex-grow ${contentPaddingClass}`}>
+      <main className={`grow ${contentPaddingClass}`}>
         {renderActivePage()}
       </main>
 
       {/* Footer */}
       <Footer onNavigate={navigate} />
+      <ToastProvider />
     </div>
   );
 }
