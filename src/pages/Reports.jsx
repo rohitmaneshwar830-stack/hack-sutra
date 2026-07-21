@@ -38,7 +38,7 @@ export default function Reports() {
 
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 py-10 min-h-screen text-left">
+    <div className="max-w-275 mx-auto px-4 py-10 min-h-screen text-left">
       {/* Title */}
       <div className="border-b-2 border-primary pb-4 mb-8">
         <h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-wide font-outfit">

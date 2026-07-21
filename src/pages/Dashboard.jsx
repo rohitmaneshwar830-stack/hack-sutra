@@ -239,9 +239,9 @@ export default function Dashboard({ onNavigate }) {
               </select>
             </div>
           </div>
-          <div className="flex-1 bg-gray-950 relative min-h-[360px] overflow-hidden">
+          <div className="flex-1 bg-gray-950 relative min-h-90 overflow-hidden">
             {/* Grid Map Backdrop */}
-            <div className="absolute inset-0 bg-[linear-gradient(#33333340_1px,transparent_1px),linear-gradient(90deg,#33333340_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+            <div className="absolute inset-0 bg-[linear-gradient(#33333340_1px,transparent_1px),linear-gradient(90deg,#33333340_1px,transparent_1px)] bg-size-[40px_40px]"></div>
             
             {/* Simulated River Path SVG */}
             <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
@@ -488,8 +488,8 @@ export default function Dashboard({ onNavigate }) {
       <p className="text-xs text-gray-400 mb-6 font-medium uppercase tracking-wider">CPCB Telemetry Stations & Active Citizen Incidents</p>
       
       {/* expanded map view */}
-      <div className="bg-gray-950 min-h-[500px] relative overflow-hidden rounded-sm border border-gray-800">
-        <div className="absolute inset-0 bg-[linear-gradient(#222_1px,transparent_1px),linear-gradient(90deg,#222_1px,transparent_1px)] bg-[size:30px_30px] opacity-40"></div>
+      <div className="bg-gray-950 min-h-125 relative overflow-hidden rounded-sm border border-gray-800">
+        <div className="absolute inset-0 bg-[linear-gradient(#222_1px,transparent_1px),linear-gradient(90deg,#222_1px,transparent_1px)] bg-size-[30px_30px] opacity-40"></div>
         <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
           <path d="M 0,25 Q 30,35 50,55 T 100,75" fill="none" stroke="#1d4ed8" strokeWidth="4" opacity="0.6" />
         </svg>
@@ -539,7 +539,7 @@ export default function Dashboard({ onNavigate }) {
     <div className="w-full bg-gray-50 min-h-[calc(100vh-140px)]">
       {/* Sub Header tabs bar */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-[1400px] mx-auto px-4">
+        <div className="max-w-350 mx-auto px-4">
           <div className="flex space-x-1 overflow-x-auto whitespace-nowrap">
             {['Overview', 'Pollution Map', 'AI Alerts', 'Biodiversity', 'Reports'].map((tab) => (
               <button
@@ -569,7 +569,7 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* Main dashboard content container */}
-      <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
+      <div className="max-w-350 mx-auto px-4 py-8 space-y-10">
         {activeSubTab === 'Overview' && renderOverview()}
         {activeSubTab === 'Pollution Map' && renderMap()}
       </div>

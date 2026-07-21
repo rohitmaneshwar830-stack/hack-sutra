@@ -95,12 +95,14 @@ export default function Home({ onNavigate }) {
 
           <div className="flex flex-wrap justify-center gap-3">
             <button
+              type="button"
               onClick={(e) => handleNav('/dashboard', e)}
               className="inline-flex items-center gap-2 rounded-sm bg-accent px-5 py-2.5 text-sm font-black uppercase tracking-wider text-primary shadow-lg transition hover:brightness-105"
             >
               Explore Dashboard <ArrowRight className="h-4 w-4" />
             </button>
             <button
+              type="button"
               onClick={(e) => handleNav('/citizen', e)}
               className="inline-flex items-center gap-2 rounded-sm border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-black uppercase tracking-wider text-white transition hover:bg-white/20"
             >

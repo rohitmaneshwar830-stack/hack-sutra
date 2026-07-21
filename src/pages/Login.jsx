@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 
 export default function Login({ onNavigate }) {
   const { user, login, error, clearError } = useAuth();
@@ -72,6 +72,10 @@ export default function Login({ onNavigate }) {
           <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase mt-1">
             Ganga Guardian AI Portal
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Secure access for field officers and citizens
+          </div>
         </div>
 
         {/* Auth Error Banner */}
@@ -99,6 +103,7 @@ export default function Login({ onNavigate }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="citizen@ganga.ai"
+                autoComplete="email"
                 className="w-full pl-10.5 pr-4 py-2.5 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-400 bg-gray-50/30"
               />
             </div>
@@ -117,6 +122,7 @@ export default function Login({ onNavigate }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
+                autoComplete="current-password"
                 className="w-full pl-10.5 pr-4 py-2.5 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-400 bg-gray-50/30"
               />
             </div>

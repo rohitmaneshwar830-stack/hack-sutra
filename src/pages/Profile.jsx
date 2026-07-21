@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Phone, Mail, CheckCircle, Save } from 'lucide-react';
+import { User, Phone, Mail, CheckCircle, Save, Languages } from 'lucide-react';
 import { api } from '../utils/api';
 
 export default function Profile() {
@@ -11,24 +11,31 @@ export default function Profile() {
   const [district, setDistrict] = useState('Kanpur Nagar');
   const [lang, setLang] = useState('English');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setName(user?.name || '');
+    setPhone(user?.phone || '');
+    setDistrict(user?.department || 'Kanpur Nagar');
+  }, [user]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!name) return;
 
+    setIsSaving(true);
     try {
       if (user?.id) {
-        // Call backend API
-        await api.put(`/users/${user.id}`, { name, phone, department: district });
+        await api.put(`/users/${user.id}`, { name, phone, department: district, language: lang });
       }
 
-      // Update in context/localStorage
       const saved = localStorage.getItem('ganga_guardian_user');
       if (saved) {
         const parsed = JSON.parse(saved);
         parsed.name = name;
         parsed.phone = phone;
         parsed.department = district;
+        parsed.language = lang;
         localStorage.setItem('ganga_guardian_user', JSON.stringify(parsed));
       }
 
@@ -38,6 +45,8 @@ export default function Profile() {
       }, 3000);
     } catch (err) {
       console.error('Failed to update profile:', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -140,14 +149,36 @@ export default function Profile() {
             </select>
           </div>
 
+          {/* Language Selector */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+              Preferred Language
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                <Languages className="h-4.5 w-4.5" />
+              </span>
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                className="w-full pl-10.5 pr-4 py-2.5 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white cursor-pointer"
+              >
+                <option>English</option>
+                <option>Hindi</option>
+                <option>Marathi</option>
+              </select>
+            </div>
+          </div>
+
           {/* Save Button */}
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3 rounded-sm shadow-md transition-colors uppercase tracking-wider text-xs flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSaving}
+              className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3 rounded-sm shadow-md transition-colors uppercase tracking-wider text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed"
             >
               <Save className="h-4 w-4 text-accent" />
-              <span>Save Account Settings</span>
+              <span>{isSaving ? 'Saving Changes...' : 'Save Account Settings'}</span>
             </button>
           </div>
 
