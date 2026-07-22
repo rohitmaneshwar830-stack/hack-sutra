@@ -1,90 +1,16 @@
 const SensorReading = require('../models/SensorReading');
 
-/**
- * GET /api/recommendations/:location
- * Returns AI-driven priority recommendations based on live sensor data.
- */
 const getRecommendations = async (req, res) => {
-  try {
-    const { location } = req.params;
-    
-    // Get latest sensor data to generate context-aware recommendations
-    const latestReading = await SensorReading.findOne({ location }).sort({ timestamp: -1 });
-    
-    if (!latestReading) {
-      return res.status(404).json({ error: 'No sensor data found for this location to generate recommendations.' });
-    }
+  const { location } = req.params;
+  const latestReading = await SensorReading.findOne({ location: { $regex: location, $options: 'i' } }).sort({ observedAt: -1 }).lean();
+  if (!latestReading) return res.json({ availability: 'no_data', location, recommendations: [], source: null, observedAt: null, fetchedAt: new Date().toISOString() });
 
-    const recommendations = [];
-    let idCounter = 1;
-
-    // Generate dynamic recommendations based on thresholds
-    if (latestReading.BOD > 30) {
-      recommendations.push({
-        id: idCounter++,
-        action: 'Deploy Emergency Aerators',
-        type: 'Remediation',
-        cost: '₹1.2L/day',
-        impact: 'High',
-        time: 'Immediate',
-        description: 'BOD levels are critical. Deploy surface aerators to prevent mass hypoxia.'
-      });
-    }
-
-    if (latestReading.heavyMetals > 0.05) {
-      recommendations.push({
-        id: idCounter++,
-        action: 'Halt Upstream Tannery Discharge',
-        type: 'Policy Enforcement',
-        cost: 'Administrative',
-        impact: 'Critical',
-        time: 'Within 2 Hours',
-        description: 'Heavy metals exceed safe thresholds. Immediate halt of Jajmau tannery cluster required.'
-      });
-    }
-
-    if (latestReading.fecalColiform > 5000) {
-      recommendations.push({
-        id: idCounter++,
-        action: 'Issue Public Bathing Advisory',
-        type: 'Public Health',
-        cost: 'Nil',
-        impact: 'High',
-        time: 'Immediate',
-        description: 'Coliform levels indicate severe sewage contamination. Warn public against ghat bathing.'
-      });
-    }
-
-    // Default long-term recommendation if few issues
-    if (recommendations.length < 2) {
-      recommendations.push({
-        id: idCounter++,
-        action: 'Increase STP Capacity by 15%',
-        type: 'Infrastructure',
-        cost: '₹4.5Cr',
-        impact: 'Long-term',
-        time: '6 Months',
-        description: 'Current load is nearing capacity. Expand primary settling tanks.'
-      });
-    }
-
-    res.json({
-      location,
-      timestamp: latestReading.timestamp,
-      recommendations
-    });
-
-  } catch (error) {
-    console.error('Error in getRecommendations:', error);
-    res.json({
-      location,
-      timestamp: new Date().toISOString(),
-      recommendations: [
-        { id: 1, action: 'Deploy Emergency Aerators', cost: '₹1.2L/day', impact: 'High', time: 'Immediate' },
-        { id: 2, action: 'Increase STP Capacity by 15%', cost: '₹4.5Cr', impact: 'Long-term', time: '6 Months' },
-      ],
-    });
-  }
+  const recommendations = [];
+  if (latestReading.BOD > 30) recommendations.push({ id: 'aeration', priority: 1, action: 'Deploy emergency aerators', type: 'Remediation', cost: null, costBasis: 'Not configured', impact: 'High', time: 'Immediate', rationale: 'Observed BOD exceeds the configured critical threshold.' });
+  if (latestReading.fecalColiform != null && latestReading.fecalColiform > 5000) recommendations.push({ id: 'public-health', priority: 2, action: 'Issue public bathing advisory', type: 'Public health', cost: null, costBasis: 'Not configured', impact: 'High', time: 'Immediate', rationale: 'Observed fecal coliform exceeds the configured threshold.' });
+  if (latestReading.chromium != null && latestReading.chromium > 0.05) recommendations.push({ id: 'industrial-enforcement', priority: 3, action: 'Inspect upstream industrial discharge', type: 'Enforcement', cost: null, costBasis: 'Not configured', impact: 'High', time: 'Within 2 hours', rationale: 'Observed chromium exceeds the configured threshold.' });
+  if (!recommendations.length) recommendations.push({ id: 'monitor', priority: 1, action: 'Continue routine monitoring', type: 'Monitoring', cost: null, costBasis: 'Not configured', impact: 'Measured data is below configured intervention thresholds', time: 'Ongoing', rationale: 'No configured threshold currently requires an intervention.' });
+  res.json({ availability: 'available', location: latestReading.location, timestamp: latestReading.observedAt, source: latestReading.source, observedAt: latestReading.observedAt, fetchedAt: new Date().toISOString(), recommendations });
 };
 
 module.exports = { getRecommendations };

@@ -1,115 +1,34 @@
 const User = require('../models/User');
+const { getPagination, meta } = require('../utils/pagination');
+const httpError = require('../utils/httpError');
 
-/**
- * GET /api/users
- * List all users with optional pagination/search.
- */
 const getUsers = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
-    const search = req.query.search || '';
-
-    const query = {};
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const total = await User.countDocuments(query);
-    const users = await User.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .select('-passwordHash');
-
-    res.json({
-      data: users,
-      meta: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error('Error in getUsers:', error);
-    res.json({ data: [], meta: { total: 0, page: 1, limit: 20, pages: 1 } });
-  }
+  const { page, limit, skip } = getPagination(req.query);
+  const query = {};
+  if (req.query.search) query.$or = [{ name: { $regex: req.query.search, $options: 'i' } }, { email: { $regex: req.query.search, $options: 'i' } }];
+  if (req.query.role) query.role = req.query.role;
+  const [total, data] = await Promise.all([User.countDocuments(query), User.find(query).select('-passwordHash').sort({ createdAt: -1 }).skip(skip).limit(limit).lean()]);
+  res.json({ data, meta: meta(page, limit, total) });
 };
 
-/**
- * PUT /api/users/:id
- * Update user profile.
- */
 const updateUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    
-    // Authorization: User can update themselves, or admin can update anyone
-    if (req.user.id !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Not authorized to update this profile.' });
-    }
-
-    const { name, phone, department, role, settings } = req.body;
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (phone !== undefined) updateData.phone = phone;
-    if (department !== undefined) updateData.department = department;
-    if (settings !== undefined) updateData.settings = settings;
-    
-    // Only admin can update roles
-    if (role && req.user.role === 'admin') {
-      updateData.role = role;
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true, runValidators: true }).select('-passwordHash');
-    
-    if (!updatedUser) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
-    res.json(updatedUser);
-  } catch (error) {
-    console.error('Error in updateUser:', error);
-    res.json({
-      _id: userId,
-      id: userId,
-      name: req.body.name || 'Updated User',
-      email: req.body.email || '',
-      role: req.body.role || 'citizen',
-      department: req.body.department || '',
-      phone: req.body.phone || '',
-    });
+  if (req.user.id !== req.params.id && req.user.role !== 'admin') throw httpError(403, 'Not authorized to update this profile.');
+  const update = {};
+  for (const field of ['name', 'phone', 'department', 'settings', 'industryId']) if (req.body[field] !== undefined) update[field] = req.body[field];
+  if (req.user.role === 'admin' && req.body.role) {
+    if (!['citizen', 'industry', 'government_officer', 'admin'].includes(req.body.role)) throw httpError(400, 'Invalid role.');
+    update.role = req.body.role;
   }
+  const user = await User.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true }).select('-passwordHash');
+  if (!user) throw httpError(404, 'User not found.', 'USER_NOT_FOUND');
+  res.json({ user });
 };
 
-/**
- * DELETE /api/users/:id
- * Delete user profile.
- */
 const deleteUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    
-    // Only admins can delete
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Not authorized to delete users.' });
-    }
-
-    const deletedUser = await User.findByIdAndDelete(userId);
-    
-    if (!deletedUser) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
-    res.json({ message: 'User deleted successfully.' });
-  } catch (error) {
-    console.error('Error in deleteUser:', error);
-    res.status(500).json({ error: 'Server error deleting user.' });
-  }
+  if (req.user.id === req.params.id) throw httpError(400, 'You cannot delete your own administrator account.');
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user) throw httpError(404, 'User not found.', 'USER_NOT_FOUND');
+  res.json({ message: 'User deleted successfully.' });
 };
 
 module.exports = { getUsers, updateUser, deleteUser };

@@ -1,15 +1,12 @@
 const express = require('express');
-const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
+const asyncHandler = require('../middleware/asyncHandler');
 const { getStats, getRiverHealth, getSensorReadings } = require('../controllers/dashboardController');
 
-// GET /api/dashboard/stats — aggregate stats (public for the landing page)
-router.get('/stats', getStats);
-
-// GET /api/river-health/:location — health score
-router.get('/river-health/:location', getRiverHealth);
-
-// GET /api/sensor-readings/:location — raw historical data
-router.get('/sensor-readings/:location', getSensorReadings);
+const router = express.Router();
+// All dashboard routes require authentication — no public exposure of internal DB metrics.
+router.get('/overview', verifyToken, asyncHandler(getStats));
+router.get('/river-health/:location', verifyToken, asyncHandler(getRiverHealth));
+router.get('/sensor-readings/:location', verifyToken, asyncHandler(getSensorReadings));
 
 module.exports = router;

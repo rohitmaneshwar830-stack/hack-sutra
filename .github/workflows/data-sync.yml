@@ -1,0 +1,14 @@
+name: Ganga Guardian official data sync
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync configured CPCB data
+        if: ${{ secrets.DATA_SYNC_URL != '' }}
+        run: curl --fail-with-body --request POST "${{ secrets.DATA_SYNC_URL }}/api/data-sync/cpcb" --header "Authorization: Bearer ${{ secrets.DATA_SYNC_TOKEN }}" --header 'Content-Type: application/json'

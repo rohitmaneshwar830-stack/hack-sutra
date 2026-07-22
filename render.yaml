@@ -1,0 +1,61 @@
+services:
+  # ── ML Inference Service (Flask / Python) ──────────────────────────────────
+  - type: web
+    name: ganga-guardian-ml
+    runtime: python
+    rootDir: ml-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 2 app:app
+    healthCheckPath: /health
+    envVars:
+      # Must be true so that pre-trained model artifacts in models/ are trusted and loaded.
+      # Without this the Flask service starts in degraded mode and all predict calls return 503.
+      - key: MODEL_ARTIFACT_TRUSTED
+        value: "true"
+      - key: MODEL_VERSION
+        value: "1.0.0-ridge-rf"
+      # Restrict CORS to the backend service only (set this to your actual backend Render URL)
+      - key: BACKEND_ORIGIN
+        sync: false   # Set in Render dashboard — do not commit real URL
+
+  # ── Node.js API Backend ────────────────────────────────────────────────────
+  - type: web
+    name: ganga-guardian-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/ready
+    envVars:
+      # Required — set ALL of these in the Render dashboard, never commit secrets.
+      - key: MONGO_URI
+        sync: false          # MongoDB Atlas connection string
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure random secret
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: NODE_ENV
+        value: "production"
+      - key: FRONTEND_URL
+        sync: false          # Vercel deployment URL, e.g. https://your-app.vercel.app
+      - key: ML_SERVICE_URL
+        sync: false          # Internal Render URL for ganga-guardian-ml service
+      - key: API_RATE_LIMIT
+        value: "200"
+      # Cloudinary (optional — citizen photo uploads; graceful 503 if unset)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Official data provider URLs (leave unset until official feeds are available)
+      - key: CPCB_DATA_URL
+        sync: false
+      - key: INDIA_WRIS_DATA_URL
+        sync: false
+      # Optional satellite tile provider for GIS map
+      - key: SATELLITE_TILE_URL
+        sync: false
+      - key: SATELLITE_ATTRIBUTION
+        sync: false

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 export default function ProtectedRoute({ children, allowedRoles, onRedirect }) {
   const { user, loading } = useAuth();

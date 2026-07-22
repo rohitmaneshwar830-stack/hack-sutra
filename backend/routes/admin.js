@@ -1,0 +1,22 @@
+const express = require('express');
+const verifyToken = require('../middleware/verifyToken');
+const requireRole = require('../middleware/requireRole');
+const asyncHandler = require('../middleware/asyncHandler');
+const SensorReading = require('../models/SensorReading');
+const Station = require('../models/Station');
+const PollutionReport = require('../models/PollutionReport');
+const Alert = require('../models/Alert');
+const { getUsers, updateUser, deleteUser } = require('../controllers/userController');
+const { createInvite } = require('../controllers/authController');
+const router = express.Router();
+router.use(verifyToken, requireRole('admin'));
+router.get('/users', asyncHandler(getUsers));
+router.put('/users/:id', asyncHandler(updateUser));
+router.delete('/users/:id', asyncHandler(deleteUser));
+router.post('/invites', asyncHandler(createInvite));
+router.get('/sensors', asyncHandler(async (req, res) => res.json({ data: await Station.find().sort({ name: 1 }).lean() })));
+router.get('/analytics', asyncHandler(async (req, res) => {
+  const [readings, reports, alerts, users] = await Promise.all([SensorReading.countDocuments(), PollutionReport.countDocuments(), Alert.countDocuments({ status: 'Active' }), require('../models/User').countDocuments()]);
+  res.json({ data: { readings, reports, activeAlerts: alerts, users } });
+}));
+module.exports = router;

@@ -1,5 +1,5 @@
 // API Client helper for Ganga Guardian AI
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 class ApiClient {
   constructor() {
@@ -15,9 +15,7 @@ class ApiClient {
         if (parsed.token) {
           headers['Authorization'] = `Bearer ${parsed.token}`;
         }
-      } catch (e) {
-        console.error('Failed to parse saved user token', e);
-      }
+      } catch { localStorage.removeItem('ganga_guardian_user'); }
     }
     return headers;
   }
@@ -41,19 +39,14 @@ class ApiClient {
       headers
     };
 
-    try {
-      const response = await fetch(url, config);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! Status: ${response.status}`);
-      }
-      
-      return data;
-    } catch (error) {
-      console.error(`API Error on ${endpoint}:`, error);
-      throw error;
+    const response = await fetch(url, config);
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json') ? await response.json() : null;
+    if (!response.ok) {
+      const message = typeof data?.error === 'string' ? data.error : data?.error?.message;
+      throw new Error(message || `HTTP error! Status: ${response.status}`);
     }
+    return data;
   }
 
   get(endpoint, options = {}) {
@@ -74,6 +67,10 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify(body)
     });
+  }
+
+  put(endpoint, body, options = {}) {
+    return this.request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) });
   }
 
   delete(endpoint, options = {}) {

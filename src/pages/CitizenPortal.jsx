@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { AlertCircle, MapPin, Camera, Trash2, CheckCircle, FileText, Check, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { AlertCircle, MapPin, Camera, Check, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 import { getStatusStyle, getAlertStyle } from '../utils/styles';
 
 export default function CitizenPortal() {
-  const { user } = useAuth();
+  useAuth();
   
   // Form states
   const [location, setLocation] = useState('');
+  const [gpsCoords, setGpsCoords] = useState('');
   const [type, setType] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState(null);
@@ -30,24 +31,40 @@ export default function CitizenPortal() {
     try {
       setLoadingReports(true);
       const data = await api.get('/reports');
-      setReports(data);
+      setReports(data.data || []);
     } catch (e) {
-      console.error('Failed to load reports from API, falling back to mock storage', e);
-      // Fallback
-      const saved = localStorage.getItem('ganga_guardian_citizen_reports');
-      if (saved) setReports(JSON.parse(saved));
+      toast.error(`Failed to load reports: ${e.message}`);
     } finally {
       setLoadingReports(false);
     }
   };
 
-  const fetchRiverHealth = async () => {
+  const fetchRiverHealth = async (stationName) => {
     try {
       setLoadingHealth(true);
-      const data = await api.get('/dashboard/river-health/Kanpur');
+      const data = await api.get(`/dashboard/river-health/${encodeURIComponent(stationName)}`);
       setRiverHealth(data);
     } catch (e) {
-      console.error(e);
+      // River health unavailable — show no-data state, don't crash
+      setRiverHealth(null);
+    } finally {
+      setLoadingHealth(false);
+    }
+  };
+
+  // Discover available stations from dashboard overview, then load health for first station found.
+  const fetchRiverHealthFromOverview = async () => {
+    try {
+      setLoadingHealth(true);
+      const overview = await api.get('/dashboard/overview');
+      const firstStation = overview?.locationData?.[0]?._id;
+      if (firstStation) {
+        const data = await api.get(`/dashboard/river-health/${encodeURIComponent(firstStation)}`);
+        setRiverHealth(data);
+      } else {
+        setRiverHealth({ availability: 'no_data' });
+      }
+    } catch (e) {
       setRiverHealth(null);
     } finally {
       setLoadingHealth(false);
@@ -58,9 +75,9 @@ export default function CitizenPortal() {
     try {
       setLoadingAlerts(true);
       const data = await api.get('/alerts');
-      setAlerts(data);
+      setAlerts(data.data || []);
     } catch (e) {
-      console.error(e);
+      toast.error(`Failed to load alerts: ${e.message}`);
     } finally {
       setLoadingAlerts(false);
     }
@@ -68,12 +85,16 @@ export default function CitizenPortal() {
 
   useEffect(() => {
     fetchReports();
-    fetchRiverHealth();
+    fetchRiverHealthFromOverview();
     fetchAlerts();
   }, []);
 
   const handleGPSPrefill = () => {
-    setLocation('Parmat Ghat, Kanpur (GPS Coordinates: 26.4784° N, 80.3421° E)');
+    if (!navigator.geolocation) return toast.error('Geolocation is not supported by this browser.');
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      setGpsCoords(`${coords.latitude}, ${coords.longitude}`);
+      setLocation(`${coords.latitude}, ${coords.longitude}`);
+    }, () => toast.error('Unable to read your location. Enter it manually.'));
   };
 
   const handleFileUpload = (e) => {
@@ -98,7 +119,7 @@ export default function CitizenPortal() {
       formData.append('location', location);
       formData.append('type', type);
       formData.append('description', description);
-      formData.append('gpsCoords', location.includes('GPS') ? '26.4784, 80.3421' : '');
+      formData.append('gpsCoords', gpsCoords);
       if (file) {
         formData.append('image', file);
       }
@@ -115,6 +136,7 @@ export default function CitizenPortal() {
 
       // Reset Form
       setLocation('');
+      setGpsCoords('');
       setType('');
       setDescription('');
       setFileName('');

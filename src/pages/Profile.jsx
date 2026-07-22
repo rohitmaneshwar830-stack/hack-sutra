@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { User, Phone, Mail, CheckCircle, Save, Languages } from 'lucide-react';
 import { api } from '../utils/api';
 
@@ -8,7 +8,7 @@ export default function Profile() {
   
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [district, setDistrict] = useState('Kanpur Nagar');
+  const [district, setDistrict] = useState('');
   const [lang, setLang] = useState('English');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -16,7 +16,7 @@ export default function Profile() {
   useEffect(() => {
     setName(user?.name || '');
     setPhone(user?.phone || '');
-    setDistrict(user?.department || 'Kanpur Nagar');
+    setDistrict(user?.department || '');
   }, [user]);
 
   const handleSave = async (e) => {
@@ -26,17 +26,7 @@ export default function Profile() {
     setIsSaving(true);
     try {
       if (user?.id) {
-        await api.put(`/users/${user.id}`, { name, phone, department: district, language: lang });
-      }
-
-      const saved = localStorage.getItem('ganga_guardian_user');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        parsed.name = name;
-        parsed.phone = phone;
-        parsed.department = district;
-        parsed.language = lang;
-        localStorage.setItem('ganga_guardian_user', JSON.stringify(parsed));
+        await api.put(`/users/${user.id}`, { name, phone, department: district, settings: { ...(user.settings || {}), language: lang } });
       }
 
       setSaveSuccess(true);
@@ -136,17 +126,13 @@ export default function Profile() {
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
               Primary Monitoring District
             </label>
-            <select
+            <input
+              type="text"
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
-              className="w-full border border-gray-300 rounded-sm px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white cursor-pointer"
-            >
-              <option>Kanpur Nagar</option>
-              <option>Prayagraj</option>
-              <option>Varanasi</option>
-              <option>Haridwar</option>
-              <option>Patna</option>
-            </select>
+              placeholder="Enter district or monitoring area"
+              className="w-full border border-gray-300 rounded-sm px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
+            />
           </div>
 
           {/* Language Selector */}

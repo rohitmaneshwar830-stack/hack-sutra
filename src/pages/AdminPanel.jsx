@@ -12,7 +12,7 @@ export default function AdminPanel() {
       setLoading(true);
       const data = await api.get('/users');
       setUsers(data.data || []);
-    } catch (e) {
+    } catch {
       console.error(e);
       toast.error('Failed to load users');
     } finally {
@@ -29,7 +29,7 @@ export default function AdminPanel() {
       await api.put(`/users/${id}`, { role: newRole });
       toast.success('User role updated successfully');
       fetchUsers();
-    } catch (e) {
+    } catch {
       toast.error('Failed to update role');
     }
   };
@@ -40,7 +40,7 @@ export default function AdminPanel() {
       await api.delete(`/users/${id}`);
       toast.success('User deleted');
       fetchUsers();
-    } catch (e) {
+    } catch {
       toast.error('Failed to delete user');
     }
   };

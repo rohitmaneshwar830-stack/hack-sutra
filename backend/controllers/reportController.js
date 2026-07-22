@@ -1,119 +1,39 @@
 const PollutionReport = require('../models/PollutionReport');
-const fallbackStore = require('../utils/fallbackStore');
+const { cloudinary, isConfigured } = require('../config/cloudinary');
+const { getPagination, meta } = require('../utils/pagination');
+const httpError = require('../utils/httpError');
 
-/**
- * POST /api/reports
- * Create a new pollution report (citizen only).
- * Supports optional image upload via multipart form.
- */
 const createReport = async (req, res) => {
-  try {
-    const { location, type, description, gpsCoords } = req.body;
-
-    if (!location || !type || !description) {
-      return res.status(400).json({ error: 'Location, type, and description are required.' });
-    }
-
-    let report;
-    try {
-      report = new PollutionReport({
-        citizenId: req.user.id,
-        citizenName: req.user.name || 'Anonymous Citizen',
-        location,
-        type,
-        description,
-        gpsCoords: gpsCoords || '',
-        imageUrl: req.file ? req.file.path : '',
-        status: 'Under Review',
-      });
-
-      await report.save();
-    } catch (error) {
-      report = fallbackStore.createReport({
-        citizenId: req.user.id,
-        citizenName: req.user.name || 'Anonymous Citizen',
-        location,
-        type,
-        description,
-        gpsCoords: gpsCoords || '',
-        status: 'Under Review',
-      });
-    }
-
-    res.status(201).json({
-      message: 'Report submitted successfully.',
-      report,
+  const { location, type, description, gpsCoords } = req.body;
+  if (!location || !type || !description) throw httpError(400, 'Location, type, and description are required.');
+  let imageUrl = '';
+  if (req.file) {
+    if (!isConfigured) throw httpError(503, 'Image storage is not configured.', 'UPLOAD_NOT_CONFIGURED');
+    imageUrl = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream({ folder: 'ganga-guardian-reports', resource_type: 'image', transformation: [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto' }] }, (error, result) => error ? reject(error) : resolve(result.secure_url));
+      stream.end(req.file.buffer);
     });
-  } catch (error) {
-    console.error('Create report error:', error);
-    res.status(500).json({ error: 'Failed to create report.' });
   }
+  const report = await PollutionReport.create({ citizenId: req.user.id, citizenName: req.user.name || '', location: location.trim(), type, description: description.trim(), gpsCoords: gpsCoords || '', imageUrl, status: 'Under Review' });
+  res.status(201).json({ report });
 };
 
-/**
- * GET /api/reports
- * Fetch reports — citizens see their own, admins see all.
- */
 const getReports = async (req, res) => {
-  try {
-    let reports = [];
-
-    try {
-      let query = {};
-
-      // Citizens only see their own reports
-      if (req.user.role === 'citizen') {
-        query.citizenId = req.user.id;
-      }
-
-      reports = await PollutionReport.find(query)
-        .sort({ createdAt: -1 })
-        .limit(100)
-        .lean();
-    } catch (error) {
-      reports = fallbackStore.listReports(req.user.role === 'citizen' ? req.user.id : null);
-    }
-
-    res.json(reports);
-  } catch (error) {
-    console.error('Get reports error:', error);
-    res.status(500).json({ error: 'Failed to fetch reports.' });
-  }
+  const { page, limit, skip } = getPagination(req.query, 20);
+  const query = {};
+  if (req.user.role === 'citizen') query.citizenId = req.user.id;
+  if (req.query.status) query.status = req.query.status;
+  if (req.query.search) query.$or = [{ location: { $regex: req.query.search, $options: 'i' } }, { type: { $regex: req.query.search, $options: 'i' } }];
+  const [total, data] = await Promise.all([PollutionReport.countDocuments(query), PollutionReport.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean()]);
+  res.json({ availability: data.length ? 'available' : 'no_data', data, meta: meta(page, limit, total) });
 };
 
-/**
- * PATCH /api/reports/:id
- * Update report status (admin only).
- */
 const updateReportStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const validStatuses = ['Pending', 'Under Review', 'Verified', 'Action Taken', 'Resolved'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
-    }
-
-    const report = await PollutionReport.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    );
-
-    if (!report) {
-      return res.status(404).json({ error: 'Report not found.' });
-    }
-
-    res.json({ message: 'Report status updated.', report });
-  } catch (error) {
-    console.error('Update report error:', error);
-    const report = fallbackStore.updateReportStatus(id, status);
-    if (!report) {
-      return res.status(404).json({ error: 'Report not found.' });
-    }
-    res.json({ message: 'Report status updated.', report });
-  }
+  const validStatuses = ['Pending', 'Under Review', 'Verified', 'Action Taken', 'Resolved'];
+  if (!validStatuses.includes(req.body.status)) throw httpError(400, `Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+  const report = await PollutionReport.findByIdAndUpdate(req.params.id, { status: req.body.status, updatedAt: new Date() }, { new: true, runValidators: true });
+  if (!report) throw httpError(404, 'Report not found.', 'REPORT_NOT_FOUND');
+  res.json({ report });
 };
 
 module.exports = { createReport, getReports, updateReportStatus };

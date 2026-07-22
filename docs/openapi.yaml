@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: Ganga Guardian AI API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      responses:
+        '200': { description: API process is running }
+  /ready:
+    get:
+      security: []
+      responses:
+        '200': { description: API and database are ready }
+        '503': { description: Dependency unavailable }
+  /auth/register:
+    post:
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' } }
+      responses:
+        '201': { description: Citizen account created }
+        '400': { description: Invalid request }
+  /auth/login:
+    post:
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/LoginRequest' } }
+      responses:
+        '200': { description: JWT and user returned }
+  /dashboard/overview:
+    get:
+      responses:
+        '200': { description: Dashboard aggregates and freshness metadata }
+  /observations:
+    get:
+      responses:
+        '200': { description: Paginated observations }
+  /map/layers:
+    get:
+      responses:
+        '200': { description: Persisted GIS layers }
+  /predictions/{location}:
+    get:
+      parameters:
+        - { name: location, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Forecast or explicit insufficient-data state }
+        '503': { description: Model unavailable }
+  /reports:
+    get:
+      responses:
+        '200': { description: Paginated reports }
+    post:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data: { schema: { $ref: '#/components/schemas/ReportRequest' } }
+      responses:
+        '201': { description: Report created }
+  /data-sync/{provider}:
+    post:
+      parameters:
+        - { name: provider, in: path, required: true, schema: { type: string, enum: [cpcb, indiawris] } }
+      responses:
+        '200': { description: Synchronization result }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        inviteToken: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    ReportRequest:
+      type: object
+      required: [location, type, description]
+      properties:
+        location: { type: string }
+        type: { type: string }
+        description: { type: string }
+        gpsCoords: { type: string }
+        image: { type: string, format: binary }
