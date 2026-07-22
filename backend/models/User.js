@@ -31,16 +31,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  createdAt: {
+  lastLoginAt: {
     type: Date,
-    default: Date.now,
+    default: null,
+  },
+  industryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Industry',
+    default: null,
   },
   settings: {
     pollingInterval: { type: String, default: '5 minutes' },
     confidenceThreshold: { type: String, default: '75%' },
-    notificationEmail: { type: String, default: 'alerts@gangaguardian.gov.in' }
+    notificationEmail: { type: String, default: 'alerts@gangaguardian.gov.in' },
+    language: { type: String, default: 'English' },
   }
-});
+}, { timestamps: true });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

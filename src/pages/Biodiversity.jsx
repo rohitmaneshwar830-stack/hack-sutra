@@ -12,8 +12,8 @@ export default function Biodiversity() {
     try {
       setLoading(true);
       const data = await api.get('/species-alerts');
-      setSpecies(data);
-    } catch (e) {
+      setSpecies(data.data || []);
+    } catch {
       setSpecies([]);
     } finally {
       setLoading(false);

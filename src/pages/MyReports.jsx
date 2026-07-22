@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { FileText, Eye, Clock, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { getStatusStyle } from '../utils/styles';
@@ -14,7 +14,7 @@ export default function MyReports({ onNavigate }) {
     try {
       setLoading(true);
       const data = await api.get('/reports');
-      setMyReports(data);
+      setMyReports(data.data || []);
     } catch (e) {
       console.error(e);
     } finally {

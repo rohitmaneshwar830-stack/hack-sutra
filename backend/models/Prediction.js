@@ -21,6 +21,9 @@ const predictionSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  source: { type: String, required: true, default: 'ml-service' },
+  confidence: { type: Number, min: 0, max: 100, default: null },
+  stale: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model('Prediction', predictionSchema);

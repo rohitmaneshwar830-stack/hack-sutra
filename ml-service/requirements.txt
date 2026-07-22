@@ -1,6 +1,9 @@
-flask
-flask-cors
-numpy
-pandas
-scikit-learn
-joblib
+# Pinned versions ensure reproducible Render builds.
+# Update versions deliberately after testing locally, never blindly bump.
+flask==3.0.3
+flask-cors==4.0.1
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.0
+joblib==1.4.2
+gunicorn==22.0.0

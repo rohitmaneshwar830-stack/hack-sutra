@@ -1,81 +1,74 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db');
-
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const connectDB = require('./config/db');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',').map((origin) => origin.trim()).filter(Boolean);
 
-// ─── Security & Logging Middleware ────────────────────────────
+app.set('trust proxy', 1);
 app.use(helmet());
-app.use(morgan('dev'));
-
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per windowMs
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+// Strip MongoDB operator keys ($, .) from all request inputs to prevent injection attacks.
+app.use(mongoSanitize({ replaceWith: '_' }));
+app.use('/api/', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.API_RATE_LIMIT || 200),
   standardHeaders: true,
   legacyHeaders: false,
-});
-app.use('/api/', apiLimiter);
-
-// ─── Middleware ───────────────────────────────────────────────
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use('/api/auth/', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
 
-// ─── Routes ──────────────────────────────────────────────────
+app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'ganga-guardian-api', timestamp: new Date().toISOString() }));
+app.get('/api/ready', (req, res) => {
+  const mongoose = require('mongoose');
+  const ready = mongoose.connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready', database: ready ? 'connected' : 'disconnected' });
+});
+
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/reports', require('./routes/reports'));
-app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/dashboard', require('./routes/dashboard'));
-
-const dashboardRouter = require('./routes/dashboard');
-const createAliasRouter = (prefix) => {
-  const router = express.Router();
-  router.use((req, res, next) => {
-    req.url = prefix + req.url;
-    dashboardRouter.handle(req, res, next);
-  });
-  return router;
-};
-app.use('/api/river-health', createAliasRouter('/river-health'));
-app.use('/api/sensor-readings', createAliasRouter('/sensor-readings'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/recommendations', require('./routes/recommendations'));
-app.use('/api/root-cause', require('./routes/rootCause'));
+app.use('/api/observations', require('./routes/observations'));
+app.use('/api/map', require('./routes/map'));
+app.use('/api/alerts', require('./routes/alerts'));
+app.use('/api/reports', require('./routes/reports'));
 app.use('/api/predictions', require('./routes/predictions'));
-app.use('/api/species-alerts', require('./routes/species'));
+app.use('/api/root-cause', require('./routes/rootCause'));
 app.use('/api/digital-twin', require('./routes/digitalTwin'));
+app.use('/api/biodiversity', require('./routes/biodiversity'));
+app.use('/api/species-alerts', require('./routes/species'));
+app.use('/api/recommendations', require('./routes/recommendations'));
+app.use('/api/industry', require('./routes/industry'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/data-sync', require('./routes/dataSync'));
 
-// ─── Health Check ────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Ganga Guardian AI Backend', timestamp: new Date().toISOString() });
-});
+app.use((req, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: `Route not found: ${req.method} ${req.originalUrl}` } }));
+app.use(errorHandler);
 
-// ─── 404 Handler ─────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
-});
+const start = async () => {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    throw new Error('JWT_SECRET must be configured with at least 32 characters.');
+  }
+  await connectDB();
+  const port = Number(process.env.PORT || 5000);
+  return app.listen(port, () => console.log(`Ganga Guardian API listening on ${port}`));
+};
 
-// ─── Error Handler ───────────────────────────────────────────
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error.' });
-});
-
-// ─── Start Server ────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
-
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n🚀 Ganga Guardian AI Backend running on port ${PORT}`);
-    console.log(`   Health: http://localhost:${PORT}/api/health`);
-    console.log(`   Auth:   http://localhost:${PORT}/api/auth/login\n`);
+if (require.main === module) {
+  start().catch((error) => {
+    console.error(`Unable to start API: ${error.message}`);
+    process.exit(1);
   });
-});
+}
+
+module.exports = { app, start };

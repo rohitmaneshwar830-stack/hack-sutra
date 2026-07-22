@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { AlertCircle, ShieldAlert, Cpu, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, ShieldAlert, Cpu, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 
-export default function AIAlerts({ onNavigate }) {
+export default function AIAlerts() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSimulation, setShowSimulation] = useState(false);
@@ -16,9 +16,9 @@ export default function AIAlerts({ onNavigate }) {
     try {
       setLoading(true);
       const data = await api.get('/alerts');
-      setAlerts(data);
+      setAlerts(data.data || []);
     } catch (e) {
-      console.error(e);
+      toast.error(`Failed to load alerts: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -28,15 +28,17 @@ export default function AIAlerts({ onNavigate }) {
     fetchAlerts();
   }, []);
 
-  const handleAction = (alertId, actionName) => {
-    setNotifiedItems(prev => ({
-      ...prev,
-      [`${alertId}-${actionName}`]: true
-    }));
-    toast.success(`Action initiated: "${actionName}" for Alert #${alertId}. Notifications dispatched to regional enforcement units.`);
+  const handleAction = async (alertId, actionName) => {
+    const status = actionName === 'Resolve Alert' ? 'Resolved' : 'Acknowledged';
+    try {
+      await api.patch(`/alerts/${alertId}`, { status });
+      setNotifiedItems(prev => ({ ...prev, [`${alertId}-${actionName}`]: true }));
+      toast.success(`Alert ${status.toLowerCase()}.`);
+      fetchAlerts();
+    } catch (error) { toast.error(error.message); }
   };
 
-  const triggerSimulation = async () => {
+  const triggerSimulation = async (location) => {
     setShowSimulation(true);
     setSimulating(true);
     setTimeout(() => {
@@ -44,15 +46,17 @@ export default function AIAlerts({ onNavigate }) {
     }, 150);
 
     try {
-      // Simulate by calling the digital twin endpoint with standard values
+      // Call the digital twin endpoint with standard intervention values
       const response = await api.post('/digital-twin/simulate', {
+        location,
         haltTanneries: true,
         stpBypass: false,
         aerators: false
       });
       setSimulationData(response.simulation);
     } catch (e) {
-      console.error(e);
+      toast.error(`Simulation unavailable: ${e.message}`);
+      setShowSimulation(false);
     } finally {
       setSimulating(false);
     }
@@ -168,7 +172,7 @@ export default function AIAlerts({ onNavigate }) {
                     Escalate to CPCB
                   </button>
                   <button
-                    onClick={triggerSimulation}
+                    onClick={() => triggerSimulation(alert.location)}
                     className="border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-bold px-4 py-2 rounded-sm transition-colors uppercase tracking-wider flex items-center gap-1 cursor-pointer bg-gray-50"
                   >
                     <Cpu className="h-3.5 w-3.5 text-accent" /> Run Digital Twin

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, Save, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Save, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
 import { api } from '../utils/api';
 
 export default function Settings() {
@@ -34,13 +34,6 @@ export default function Settings() {
         
         await api.put(`/users/${user.id}`, { settings: newSettings });
         
-        // Update local context
-        const saved = localStorage.getItem('ganga_guardian_user');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          parsed.settings = newSettings;
-          localStorage.setItem('ganga_guardian_user', JSON.stringify(parsed));
-        }
       }
       setSaveSuccess(true);
       setTimeout(() => {
@@ -133,13 +126,6 @@ export default function Settings() {
             />
           </div>
 
-          {/* Warnings */}
-          <div className="bg-orange-50 border border-orange-100 p-4 rounded-sm flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-            <p className="text-[11px] text-orange-900 leading-normal font-medium">
-              CRITICAL: Changes to telemetry polling parameters affect physical node battery modules and server bandwidth consumption in region Kanpur-Varanasi.
-            </p>
-          </div>
 
           {/* Submit */}
           <div className="pt-2">

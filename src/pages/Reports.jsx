@@ -12,7 +12,7 @@ export default function Reports() {
     try {
       setLoading(true);
       const data = await api.get('/reports');
-      setReports(data);
+      setReports(data.data || []);
     } catch (e) {
       console.error(e);
     } finally {

@@ -1,0 +1,10 @@
+const express = require('express');
+const verifyToken = require('../middleware/verifyToken');
+const requireRole = require('../middleware/requireRole');
+const asyncHandler = require('../middleware/asyncHandler');
+const { sync, status } = require('../controllers/dataSyncController');
+const router = express.Router();
+router.use(verifyToken, requireRole('admin'));
+router.get('/status', asyncHandler(status));
+router.post('/:provider', asyncHandler(sync));
+module.exports = router;

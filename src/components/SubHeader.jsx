@@ -11,7 +11,7 @@ export default function SubHeader() {
         const data = await api.get('/dashboard/stats');
         setActiveSensors(data.monitoringLocations);
         setLastSync(data.latestTimestamp ? new Date(data.latestTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now');
-      } catch (err) {
+    } catch {
         console.error('Failed to load stats for subheader');
       }
     };

@@ -1,92 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Factory, Droplets, AlertTriangle, ShieldCheck, Activity, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertTriangle, Factory, Loader2, ShieldCheck } from 'lucide-react';
 import { api } from '../utils/api';
-import toast from 'react-hot-toast';
 
 export default function IndustryPortal() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchIndustryData = async () => {
-    try {
-      setLoading(true);
-      // For now, mock some stats using the general dashboard stats, or simulate industry-specific stats
-      const data = await api.get('/dashboard/stats');
-      setStats({
-        dischargeLimit: '150 KLD',
-        currentDischarge: '135 KLD',
-        complianceStatus: 'GOOD',
-        lastInspection: new Date().toLocaleDateString()
-      });
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to load industry metrics');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchIndustryData();
-  }, []);
-
-  return (
-    <div className="max-w-5xl mx-auto px-4 py-12 text-left min-h-[calc(100vh-200px)]">
-      <div className="border-b pb-4 mb-8 flex justify-between items-center flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-primary font-outfit uppercase">
-            Industry Compliance Portal
-          </h1>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">
-            Monitor zero-liquid-discharge (ZLD) metrics and regulatory status
-          </p>
-        </div>
-        <div className="bg-green-50 border border-green-200 px-3 py-1.5 rounded flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-safe-green" />
-          <span className="text-xs font-extrabold text-green-800 uppercase tracking-wide">License Active</span>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin text-primary h-10 w-10" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
-            <Factory className="h-6 w-6 text-gray-400 mb-3" />
-            <div className="text-2xl font-black text-primary font-outfit">{stats?.currentDischarge}</div>
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Current Discharge</div>
-          </div>
-          
-          <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
-            <Droplets className="h-6 w-6 text-gray-400 mb-3" />
-            <div className="text-2xl font-black text-primary font-outfit">{stats?.dischargeLimit}</div>
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Authorized Limit</div>
-          </div>
-
-          <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
-            <Activity className="h-6 w-6 text-gray-400 mb-3" />
-            <div className="text-2xl font-black text-safe-green font-outfit">{stats?.complianceStatus}</div>
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Compliance State</div>
-          </div>
-
-          <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
-            <AlertTriangle className="h-6 w-6 text-gray-400 mb-3" />
-            <div className="text-2xl font-black text-primary font-outfit">{stats?.lastInspection}</div>
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Last CPCB Sync</div>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white border border-gray-200 shadow-sm p-6 rounded-sm">
-        <h2 className="text-base font-bold text-gray-900 font-outfit uppercase mb-4 tracking-wide">
-          Recent Effluent Reports
-        </h2>
-        <div className="text-sm text-gray-500 text-center py-8">
-          All physical telemetry probes are functioning nominally. No anomalous discharge events detected in the last 30 days.
-        </div>
-      </div>
-    </div>
-  );
+  const [data, setData] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
+  useEffect(() => { api.get('/industry/compliance').then(setData).catch((err) => setError(err.message)).finally(() => setLoading(false)); }, []);
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  return <div className="mx-auto min-h-[calc(100vh-200px)] max-w-6xl px-4 py-12 text-left"><h1 className="font-outfit text-2xl font-black uppercase text-primary">Industry compliance portal</h1><p className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">Persisted compliance and emissions observations</p>{error && <div role="alert" className="mt-6 border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}{!error && !data?.industry && <div className="mt-8 border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">No industry record is linked to this account yet. Ask an administrator to link your facility.</div>}{data?.industry && <><div className="mt-8 grid gap-5 md:grid-cols-3"><div className="border border-gray-200 bg-white p-6"><Factory className="mb-3 h-6 w-6 text-primary" /><div className="font-bold text-primary">{data.industry.name}</div><div className="text-xs text-gray-500">{data.industry.category}</div></div><div className="border border-gray-200 bg-white p-6"><ShieldCheck className="mb-3 h-6 w-6 text-safe-green" /><div className="font-bold text-primary">{data.alerts?.length ? 'Review required' : 'No recorded exceedance'}</div><div className="text-xs text-gray-500">Based on persisted compliance readings</div></div><div className="border border-gray-200 bg-white p-6"><AlertTriangle className="mb-3 h-6 w-6 text-gray-400" /><div className="font-bold text-primary">{data.records?.length ?? 0}</div><div className="text-xs text-gray-500">Compliance observations</div></div></div><div className="mt-8 overflow-x-auto border border-gray-200 bg-white"><table className="w-full text-left text-sm"><thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="p-4">Pollutant</th><th className="p-4">Observed</th><th className="p-4">Limit</th><th className="p-4">Observed at</th></tr></thead><tbody>{data.records?.map((record) => <tr key={record._id} className="border-t"><td className="p-4">{record.pollutant}</td><td className="p-4">{record.value} {record.unit}</td><td className="p-4">{record.limit} {record.unit}</td><td className="p-4">{new Date(record.observedAt).toLocaleString()}</td></tr>)}</tbody></table>{!data.records?.length && <p className="p-8 text-center text-sm text-gray-500">No compliance records available.</p>}</div></>}</div>;
 }
